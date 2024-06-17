@@ -120,6 +120,7 @@ run/
 .settings
 .classpath
 .project
+.factorypath
 cp.sh
 Makefile
 bin/
