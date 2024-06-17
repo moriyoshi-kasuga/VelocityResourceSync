@@ -1,0 +1,6 @@
+github:
+  repo: "your-repo/your-repository"
+  branch: "main"
+webhook:
+  port: 25564
+  secret: "your-webhook-secret"
