@@ -10,13 +10,5 @@ VelocityResourceSync is a Minecraft Velocity plugin that listens for GitHub Webh
 
 ## Configuration
 
-The `config.yml` file allows you to specify the GitHub repository and the branch to pull from.
-
-```yaml
-github:
-  repo: "your-name/your-repository"
-  branch: "main"
-webhook:
-  port: 25564
-  secret: "your-webhook-secret"
-```
+In the `config.yml` file, specify the GitHub repository and the branch and secret to pull.
+see [config.yml](./src/main/resources/config.yml)

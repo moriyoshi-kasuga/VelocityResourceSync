@@ -4,3 +4,4 @@ github:
 webhook:
   port: 25564
   secret: "your-webhook-secret"
+update_message: "<red><b>ResourcePack Update available"

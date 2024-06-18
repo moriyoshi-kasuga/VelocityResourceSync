@@ -1,17 +1,26 @@
 package github.moriyoshi.velocityresourcesync;
 
+import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteStreams;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 import lombok.Getter;
+import lombok.val;
+import net.kyori.adventure.resource.ResourcePackInfo;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
@@ -25,6 +34,8 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
     version = BuildConstants.VERSION)
 public class VelocityResourceSync {
 
+  private final UUID uuid = HashUUID.v5("VelocityResourceSync");
+
   private final ProxyServer server;
   private final Logger logger;
   private final Path dataDirectory;
@@ -32,7 +43,29 @@ public class VelocityResourceSync {
 
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
-    reloadConfig();
+    loadConfig();
+    server.getChannelRegistrar().register(IDENTIFIER);
+  }
+
+  public static final MinecraftChannelIdentifier IDENTIFIER =
+      MinecraftChannelIdentifier.from("velocityresourcesync:main");
+
+  @Subscribe
+  public void onPluginMessageFromPlayer(PluginMessageEvent event) {
+    if (event.getIdentifier() != IDENTIFIER) {
+      return;
+    }
+
+    if (!(event.getSource() instanceof final Player player)) {
+      return;
+    }
+
+    ByteArrayDataInput in = ByteStreams.newDataInput(event.getData());
+    val type = in.readUTF();
+    if (type.equalsIgnoreCase("load")) {
+      player.sendResourcePacks(
+          ResourcePackInfo.resourcePackInfo(uuid, URI.create("./local"), configManger.getHash()));
+    }
   }
 
   @Inject
@@ -69,7 +102,7 @@ public class VelocityResourceSync {
     }
   }
 
-  private void reloadConfig() {
+  private void loadConfig() {
     try {
       Path configFile = dataDirectory.resolve("config.yml");
       if (Files.notExists(configFile) || !Files.isRegularFile(configFile)) {
@@ -84,7 +117,7 @@ public class VelocityResourceSync {
       YamlConfigurationLoader loader = builder.build();
       CommentedConfigurationNode configurationNode = loader.load();
 
-      configManger.load(configurationNode);
+      configManger.load(server, configurationNode);
 
     } catch (IOException ex) {
       logger.error("An error occurred while reloading the configurations.", ex);
