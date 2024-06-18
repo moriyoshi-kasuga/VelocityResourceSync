@@ -8,19 +8,18 @@ import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
-import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.HexFormat;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.val;
-import net.kyori.adventure.resource.ResourcePackInfo;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
@@ -52,19 +51,31 @@ public class VelocityResourceSync {
 
   @Subscribe
   public void onPluginMessageFromPlayer(PluginMessageEvent event) {
-    if (event.getIdentifier() != IDENTIFIER) {
+    if (!event.getIdentifier().equals(IDENTIFIER)) {
       return;
     }
 
-    if (!(event.getSource() instanceof final Player player)) {
+    if (!(event.getSource() instanceof final ServerConnection conn)) {
       return;
     }
+
+    val player = conn.getPlayer();
 
     ByteArrayDataInput in = ByteStreams.newDataInput(event.getData());
     val type = in.readUTF();
     if (type.equalsIgnoreCase("load")) {
-      player.sendResourcePacks(
-          ResourcePackInfo.resourcePackInfo(uuid, URI.create("./local"), configManger.getHash()));
+      logger.info("loading resourcepacks for {}", player.getUsername());
+      val resource =
+          server
+              .createResourcePackBuilder(configManger.getRepoFolder().getPath())
+              .setHash(HexFormat.of().parseHex(configManger.getHash()))
+              .setId(uuid)
+              .build();
+      // TODO: なぜかプレイヤーに送られない
+      player.sendResourcePackOffer(resource);
+    } else if (type.equalsIgnoreCase("unload")) {
+      logger.info("unloading resourcepacks for {}", player.getUsername());
+      player.removeResourcePacks(uuid);
     }
   }
 

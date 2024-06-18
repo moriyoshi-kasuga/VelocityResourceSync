@@ -24,10 +24,18 @@ public final class ConfigManger {
   @NotNull @Getter private String secret;
   @NotNull @Getter private Component updateMessage;
   @NotNull @Getter private String hash;
+  @NotNull @Getter private File repoFolder;
 
   public ConfigManger(Logger logger, Path dataDirectory) {
     this.logger = logger;
     this.dataDirectory = dataDirectory;
+  }
+
+  public void updateHash() {
+    Util.run(logger, "git pull", repoFolder);
+    Util.run(logger, "zip -q -r -X resources.zip assets pack.mcmeta pack.png", repoFolder);
+    hash = Util.runAndGet("sha1sum resources.zip | awk '{ print $1 }'", repoFolder);
+    logger.info("hash: " + hash);
   }
 
   public void load(ProxyServer server, CommentedConfigurationNode configurationNode) {
@@ -50,8 +58,8 @@ public final class ConfigManger {
               + repoDir.toFile().getAbsolutePath());
       logger.info("cloned " + repo);
     }
-    File repoFolder = repoDir.toFile();
-    Util.run(logger, "git pull", repoFolder);
+    repoFolder = repoDir.toFile();
+    updateHash();
 
     val webhook = configurationNode.node("webhook");
     this.port = webhook.node("port").getInt(-1);

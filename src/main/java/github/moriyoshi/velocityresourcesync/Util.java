@@ -37,6 +37,37 @@ public final class Util {
     }
   }
 
+  public static String runAndGet(String command) {
+    return runAndGet(command, null, null);
+  }
+
+  public static String runAndGet(String command, String[] envp) {
+    return runAndGet(command, envp, null);
+  }
+
+  public static String runAndGet(String command, File dir) {
+    return runAndGet(command, null, dir);
+  }
+
+  public static String runAndGet(String command, String[] envp, File dir) {
+    try {
+      val p = Runtime.getRuntime().exec(new String[] {"bash", "-c", command}, envp, dir);
+
+      val sb = new StringBuilder();
+      BufferedReader bf = new BufferedReader(new InputStreamReader(p.getInputStream()));
+      String line = null;
+      while ((line = bf.readLine()) != null) {
+        sb.append(line);
+      }
+      p.waitFor();
+
+      return sb.toString();
+
+    } catch (IOException | InterruptedException e) {
+      throw new RuntimeException("Failed to run command of " + command, e);
+    }
+  }
+
   public static void print(Logger logger, InputStream input) {
     new Thread(
             new Runnable() {
