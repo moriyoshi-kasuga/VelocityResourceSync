@@ -20,6 +20,8 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 @Plugin(
     id = "velocityresourcesync",
     name = "VelocityResourceSync",
+    authors = "moriyoshi-kasuga",
+    url = "https://github.com/moriyoshi-kasuga/VelocityResourceSync",
     version = BuildConstants.VERSION)
 public class VelocityResourceSync {
 
