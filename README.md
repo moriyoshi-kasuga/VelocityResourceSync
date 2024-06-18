@@ -14,7 +14,7 @@ The `config.yml` file allows you to specify the GitHub repository and the branch
 
 ```yaml
 github:
-  repo: "your-repo/your-repository"
+  repo: "your-name/your-repository"
   branch: "main"
 webhook:
   port: 25564

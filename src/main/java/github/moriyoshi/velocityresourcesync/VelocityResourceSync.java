@@ -46,7 +46,6 @@ public class VelocityResourceSync {
 
   private void saveDefaultConfig() {
     try {
-      Path dataDirectory = getDataDirectory();
       if (Files.notExists(dataDirectory)) {
         Files.createDirectories(dataDirectory);
       }
@@ -56,8 +55,7 @@ public class VelocityResourceSync {
         return;
       }
 
-      Class<?> thisClass = getClass();
-      InputStream jarConfigStream = thisClass.getResourceAsStream("/config.yml");
+      InputStream jarConfigStream = getClass().getResourceAsStream("/config.yml");
       if (jarConfigStream == null) {
         throw new IOException("Missing file 'config.yml' in jar.");
       }
@@ -65,14 +63,12 @@ public class VelocityResourceSync {
       Files.copy(jarConfigStream, configFile, StandardCopyOption.REPLACE_EXISTING);
       jarConfigStream.close();
     } catch (IOException ex) {
-      Logger logger = getLogger();
       logger.error("An error occurred while saving the default configuration.", ex);
     }
   }
 
   private void reloadConfig() {
     try {
-      Path dataDirectory = getDataDirectory();
       Path configFile = dataDirectory.resolve("config.yml");
       if (Files.notExists(configFile) || !Files.isRegularFile(configFile)) {
         throw new IOException("The 'config.yml' file does not exist.");
@@ -86,11 +82,9 @@ public class VelocityResourceSync {
       YamlConfigurationLoader loader = builder.build();
       CommentedConfigurationNode configurationNode = loader.load();
 
-      ConfigManger configuration = getConfigManger();
-      configuration.load(configurationNode);
+      configManger.load(configurationNode);
 
     } catch (IOException ex) {
-      Logger logger = getLogger();
       logger.error("An error occurred while reloading the configurations.", ex);
     }
   }
