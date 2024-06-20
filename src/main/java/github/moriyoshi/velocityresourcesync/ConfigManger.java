@@ -2,8 +2,6 @@ package github.moriyoshi.velocityresourcesync;
 
 import com.google.common.base.Preconditions;
 import com.velocitypowered.api.proxy.ProxyServer;
-import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import lombok.Getter;
 import lombok.val;
@@ -24,8 +22,8 @@ public final class ConfigManger {
   @NotNull @Getter private String secret;
   @NotNull @Getter private Component updateMessage;
   @NotNull @Getter private String hash;
-  @NotNull @Getter private File repoFolder;
   @NotNull @Getter private ProxyServer server;
+  @NotNull private String hash_command;
 
   public ConfigManger(Logger logger, Path dataDirectory) {
     this.logger = logger;
@@ -33,9 +31,7 @@ public final class ConfigManger {
   }
 
   public void updateHash() {
-    Util.run(logger, "git pull", repoFolder);
-    Util.run(logger, "zip -q -r -X resources.zip assets pack.mcmeta pack.png", repoFolder);
-    hash = Util.runAndGet("sha1sum resources.zip | awk '{ print $1 }'", repoFolder);
+    hash = Util.runAndGet(hash_command);
     logger.info("hash: " + hash);
   }
 
@@ -47,28 +43,17 @@ public final class ConfigManger {
     Preconditions.checkNotNull(repo, "repo can't be null");
     Preconditions.checkNotNull(branch, "branch can't be null");
 
-    Path repoDir = dataDirectory.resolve(repo.split("/")[1]);
-    if (Files.notExists(repoDir)) {
-      logger.info("cloning " + repo);
-      Util.run(
-          logger,
-          "git clone -b "
-              + branch
-              + " https://github.com/"
-              + repo
-              + " "
-              + repoDir.toFile().getAbsolutePath());
-      logger.info("cloned " + repo);
-    }
-    repoFolder = repoDir.toFile();
-    updateHash();
-
     val webhook = configurationNode.node("webhook");
     this.port = webhook.node("port").getInt(-1);
     this.secret = webhook.node("secret").getString();
     Preconditions.checkState(port != -1, "port can't be null");
     Preconditions.checkNotNull(secret, "secret can't be null");
     Preconditions.checkState(secret != "your-webhook-secret", "please set your webhook secret");
+
+    this.hash_command = configurationNode.node("hash_command").getString();
+    Preconditions.checkNotNull(hash_command, "hash command can't be null");
+
+    updateHash();
 
     val updateMessageRaw = configurationNode.node("update_message").getString();
     Preconditions.checkNotNull(updateMessageRaw, "updateMessage can't be null");
