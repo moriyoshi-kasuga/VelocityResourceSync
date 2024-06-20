@@ -75,19 +75,27 @@ public class VelocityResourceSync {
 
     ByteArrayDataInput in = ByteStreams.newDataInput(event.getData());
     val type = in.readUTF();
-    if (type.equalsIgnoreCase("load")) {
-      logger.info("loading resourcepacks for {}", player.getUsername());
-      val resource =
-          server
-              .createResourcePackBuilder(
-                  "https://github.com/" + configManger.getRepo() + "/releases/download/latest/resources.zip")
-              .setHash(HexFormat.of().parseHex(configManger.getHash()))
-              .setId(uuid)
-              .build();
-      player.sendResourcePackOffer(resource);
-    } else if (type.equalsIgnoreCase("unload")) {
-      logger.info("unloading resourcepacks for {}", player.getUsername());
-      player.removeResourcePacks(uuid);
+
+    if (player.getAppliedResourcePacks().stream()
+        .anyMatch(resource -> resource.getId().equals(uuid))) {
+      if (type.equalsIgnoreCase("unload")) {
+        logger.info("unloading resourcepacks for {}", player.getUsername());
+        player.removeResourcePacks(uuid);
+      }
+    } else {
+      if (type.equalsIgnoreCase("load")) {
+        logger.info("loading resourcepacks for {}", player.getUsername());
+        val resource =
+            server
+                .createResourcePackBuilder(
+                    "https://github.com/"
+                        + configManger.getRepo()
+                        + "/releases/download/latest/resources.zip")
+                .setHash(HexFormat.of().parseHex(configManger.getHash()))
+                .setId(uuid)
+                .build();
+        player.sendResourcePackOffer(resource);
+      }
     }
   }
 
