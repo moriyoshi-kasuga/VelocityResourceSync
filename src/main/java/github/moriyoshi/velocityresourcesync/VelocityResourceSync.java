@@ -80,7 +80,7 @@ public class VelocityResourceSync {
       val resource =
           server
               .createResourcePackBuilder(
-                  "https://github.com/" + configManger.getRepo() + "/releases/tag/latest")
+                  "https://github.com/" + configManger.getRepo() + "/releases/download/latest/resources.zip")
               .setHash(HexFormat.of().parseHex(configManger.getHash()))
               .setId(uuid)
               .build();
