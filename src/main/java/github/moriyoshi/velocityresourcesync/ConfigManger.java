@@ -25,6 +25,7 @@ public final class ConfigManger {
   @NotNull @Getter private Component updateMessage;
   @NotNull @Getter private String hash;
   @NotNull @Getter private File repoFolder;
+  @NotNull @Getter private ProxyServer server;
 
   public ConfigManger(Logger logger, Path dataDirectory) {
     this.logger = logger;
@@ -39,6 +40,7 @@ public final class ConfigManger {
   }
 
   public void load(ProxyServer server, CommentedConfigurationNode configurationNode) {
+    this.server = server;
     val github = configurationNode.node("github");
     this.repo = github.node("repo").getString();
     this.branch = github.node("branch").getString();

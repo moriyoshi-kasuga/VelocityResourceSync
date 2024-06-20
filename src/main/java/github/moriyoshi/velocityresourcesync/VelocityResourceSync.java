@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
@@ -40,10 +41,21 @@ public class VelocityResourceSync {
   private final Path dataDirectory;
   private final ConfigManger configManger;
 
+  private WebHookServer webhookServer;
+
+  @Subscribe
+  public void onProxyShutodnw(ProxyShutdownEvent event) {
+    webhookServer.stop();
+  }
+
   @Subscribe
   public void onProxyInitialization(ProxyInitializeEvent event) {
     loadConfig();
     server.getChannelRegistrar().register(IDENTIFIER);
+
+    webhookServer = new WebHookServer(configManger);
+    val t = new Thread(webhookServer);
+    t.start();
   }
 
   public static final MinecraftChannelIdentifier IDENTIFIER =
@@ -67,11 +79,11 @@ public class VelocityResourceSync {
       logger.info("loading resourcepacks for {}", player.getUsername());
       val resource =
           server
-              .createResourcePackBuilder(configManger.getRepoFolder().getPath())
+              .createResourcePackBuilder(
+                  "https://github.com/" + configManger.getRepo() + "/releases/tag/latest")
               .setHash(HexFormat.of().parseHex(configManger.getHash()))
               .setId(uuid)
               .build();
-      // TODO: なぜかプレイヤーに送られない
       player.sendResourcePackOffer(resource);
     } else if (type.equalsIgnoreCase("unload")) {
       logger.info("unloading resourcepacks for {}", player.getUsername());

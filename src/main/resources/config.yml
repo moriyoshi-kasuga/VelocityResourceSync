@@ -2,6 +2,7 @@ github:
   repo: "your-name/your-repository"
   branch: "main"
 webhook:
-  port: 25564
+  port: 25580
   secret: "your-webhook-secret"
+
 update_message: "<red><b>ResourcePack Update available"
