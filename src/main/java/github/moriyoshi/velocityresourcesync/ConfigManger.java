@@ -30,9 +30,9 @@ public final class ConfigManger {
     this.dataDirectory = dataDirectory;
   }
 
-  public void updateHash() {
-    hash = Util.runAndGet(hash_command);
-    logger.info("hash: " + hash);
+  public void updateHash(String newHash) {
+    hash = newHash;
+    logger.info("updated hash to " + newHash);
   }
 
   public void load(ProxyServer server, CommentedConfigurationNode configurationNode) {
@@ -53,7 +53,7 @@ public final class ConfigManger {
     this.hash_command = configurationNode.node("hash_command").getString();
     Preconditions.checkNotNull(hash_command, "hash command can't be null");
 
-    updateHash();
+    updateHash(Util.runAndGet(hash_command));
 
     val updateMessageRaw = configurationNode.node("update_message").getString();
     Preconditions.checkNotNull(updateMessageRaw, "updateMessage can't be null");

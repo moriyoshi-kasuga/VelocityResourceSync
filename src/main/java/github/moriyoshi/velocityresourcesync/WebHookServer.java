@@ -2,6 +2,7 @@ package github.moriyoshi.velocityresourcesync;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -10,7 +11,6 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
-import java.util.stream.Collectors;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.val;
@@ -32,25 +32,38 @@ public final class WebHookServer implements Runnable {
         return;
       }
 
-      Headers headers = exchange.getRequestHeaders();
-      String event = headers.getFirst("x-github-event");
+      InputStream is = exchange.getRequestBody();
+      byte[] b = is.readAllBytes();
+      is.close();
+
+      if (b.length == 0) {
+        sendResponse(exchange, 400, "Bad Request: empty payload");
+        return;
+      }
+
+      final String payloadBody = new String(b, StandardCharsets.UTF_8);
+      System.out.println(payloadBody);
+      JsonObject json;
+      try {
+        json = JsonParser.parseString(payloadBody).getAsJsonObject();
+      } catch (JsonSyntaxException ignore) {
+        sendResponse(exchange, 400, "Bad Request: JSON syntax error");
+        return;
+      }
+
+      String repo = json.get("repository").getAsString();
+      String ref = json.get("ref").getAsString();
+      String event = json.get("event").getAsString();
+
       if (!"push".equals(event)) {
         sendResponse(exchange, 412, "Only push event");
         return;
       }
 
-      InputStream inputStream = exchange.getRequestBody();
-      val buf = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-      String payloadBody = buf.lines().collect(Collectors.joining("\n"));
-      buf.close();
-
       try {
-        String signatureHeader = headers.getFirst("x-hub-signature-256");
+        Headers headers = exchange.getRequestHeaders();
+        String signatureHeader = headers.getFirst("X-Hub-Signature-256");
         verifySignature(payloadBody, config.getSecret(), signatureHeader);
-
-        JsonObject json = JsonParser.parseString(payloadBody).getAsJsonObject();
-        String repo = json.getAsJsonObject("repository").get("full_name").getAsString();
-        String ref = json.get("ref").getAsString();
 
         if (!repo.equals(config.getRepo())) {
           sendResponse(exchange, 412, "Only repo " + config.getRepo());
@@ -62,14 +75,15 @@ public final class WebHookServer implements Runnable {
           return;
         }
 
-        val hash = config.getHash();
-        config.updateHash();
-        if (hash.equals(config.getHash())) {
+        val hash = json.getAsJsonObject("data").get("hash").getAsString();
+        val oldHash = config.getHash();
+        if (hash.equals(oldHash)) {
           sendResponse(exchange, 406, "No new content");
           return;
         }
+        config.updateHash(hash);
         config.getServer().sendMessage(config.getUpdateMessage());
-        sendResponse(exchange, 200, "{\"greeting\":\"Hello world\"}");
+        sendResponse(exchange, 200, "{\"success\":\"Updated\"}");
       } catch (Exception e) {
         sendResponse(exchange, 403, "Unauthorized: " + e.getMessage());
       }
@@ -86,7 +100,7 @@ public final class WebHookServer implements Runnable {
     private void verifySignature(String payloadBody, String secretToken, String signatureHeader)
         throws Exception {
       if (signatureHeader == null || signatureHeader.isEmpty()) {
-        throw new Exception("x-hub-signature-256 header is missing!");
+        throw new Exception("X-Hub-Signature-256 header is missing!");
       }
 
       Mac mac = Mac.getInstance("HmacSHA256");
