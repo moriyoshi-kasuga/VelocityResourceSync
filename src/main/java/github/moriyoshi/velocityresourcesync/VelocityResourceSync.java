@@ -34,7 +34,7 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
     version = BuildConstants.VERSION)
 public class VelocityResourceSync {
 
-  private final UUID uuid = HashUUID.v5("VelocityResourceSync");
+  private final UUID uuid = UUID.nameUUIDFromBytes("VelocityResourceSync".getBytes());
 
   private final ProxyServer server;
   private final Logger logger;
